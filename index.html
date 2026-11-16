@@ -36,7 +36,7 @@
         .container {
             background: var(--card);
             width: 100%;
-            max-width: 750px;
+            max-width: 780px;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             padding: 30px;
@@ -112,6 +112,75 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
         }
 
+        /* অডিও আপলোড সেকশন */
+        .audio-upload-box {
+            background: #f8fafc;
+            border: 1.5px dashed var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .audio-upload-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-label:hover {
+            background: #bae6fd;
+        }
+
+        #audioFileInput {
+            display: none;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #475569;
+        }
+
+        #audioPlayerContainer {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+            outline: none;
+        }
+
+        .helper-note {
+            font-size: 13px;
+            color: #0f766e;
+            background: #f0fdfa;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+
         .editor-box {
             position: relative;
             margin-bottom: 16px;
@@ -119,7 +188,7 @@
 
         textarea {
             width: 100%;
-            height: 260px;
+            height: 240px;
             padding: 16px;
             border: 2px solid var(--border);
             border-radius: 12px;
@@ -215,7 +284,7 @@
 <div class="container">
     <div class="header">
         <h1>বাংলা ভয়েস টু টেক্সট</h1>
-        <p>মাইক্রোফোনে বাংলায় কথা বলুন, স্বয়ংক্রিয়ভাবে যতিচিহ্নসহ লেখায় রূপান্তর হবে</p>
+        <p>মাইক্রোফোনে কথা বলুন অথবা অডিও ফাইল আপলোড করে লেখায় রূপান্তর করুন</p>
     </div>
 
     <div id="errorBox" class="error-msg"></div>
@@ -235,8 +304,22 @@
         </div>
     </div>
 
+    <!-- অডিও ফাইল আপলোড সেকশন -->
+    <div class="audio-upload-box">
+        <div class="audio-upload-header">
+            <label for="audioFileInput" class="upload-label">📂 অডিও ফাইল আপলোড করুন</label>
+            <input type="file" id="audioFileInput" accept="audio/*">
+            <span id="fileName" class="file-name">কোনো ফাইল সিলেক্ট করা হয়নি (.mp3, .wav, .m4a)</span>
+        </div>
+        
+        <div id="audioPlayerContainer">
+            <audio id="audioPlayer" controls></audio>
+            <div class="helper-note">💡 <b>টিপস:</b> অডিওটি থেকে লেখা তৈরি করতে নিচের <b>"রেকর্ডিং শুরু করুন"</b> বাটনে চাপ দিয়ে স্পিকারে অডিওটি প্লে করুন।</div>
+        </div>
+    </div>
+
     <div class="editor-box">
-        <textarea id="outputText" placeholder="এখানে আপনার বলা কথা লেখা আকারে দেখা যাবে..."></textarea>
+        <textarea id="outputText" placeholder="এখানে আপনার বলা বা অডিও ফাইলের কথা লেখা আকারে দেখা যাবে..."></textarea>
     </div>
 
     <div id="interimText" class="interim-preview">কথা বলার জন্য নিচের "রেকর্ডিং শুরু করুন" বাটনে চাপ দিন...</div>
@@ -270,8 +353,36 @@
     const wordCount = document.getElementById('wordCount');
     const charCount = document.getElementById('charCount');
 
+    // অডিও আপলোড এলিমেন্টস
+    const audioFileInput = document.getElementById('audioFileInput');
+    const fileNameDisplay = document.getElementById('fileName');
+    const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+    const audioPlayer = document.getElementById('audioPlayer');
+
     let isRecording = false;
     let recognition = null;
+
+    // অডিও ফাইল আপলোড হ্যান্ডলার
+    audioFileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            fileNameDisplay.textContent = `সিলেক্টেড: ${file.name}`;
+            const fileURL = URL.createObjectURL(file);
+            audioPlayer.src = fileURL;
+            audioPlayerContainer.style.display = 'flex';
+        }
+    });
+
+    // অডিও প্লে করলে অটোমেটিক রেকর্ডিং শুরু করার অপশন
+    audioPlayer.addEventListener('play', () => {
+        if (!isRecording && recognition) {
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Recording already active');
+            }
+        }
+    });
 
     function toBengaliNumber(num) {
         const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
@@ -311,7 +422,7 @@
             statusText.textContent = 'শুনছি... কথা বলুন';
             toggleBtn.textContent = '⏹️ রেকর্ডিং থামান';
             toggleBtn.classList.add('active');
-            interimText.textContent = 'আপনার কথা শোনা হচ্ছে...';
+            interimText.textContent = 'আপনার কথা বা অডিও শোনা হচ্ছে...';
             errorBox.style.display = 'none';
         };
 
@@ -337,7 +448,7 @@
             if (finalTranscript) {
                 let formattedText = finalTranscript.trim();
                 
-                // অটো-পাংচুয়েশন: যদি লেখার শেষে কোনো যতিচিহ্ন না থাকে, তবে স্বয়ংক্রিয়ভাবে দাড়ি (। যোগ করে দেওয়া
+                // অটো-পাংচুয়েশন
                 if (!/[।?.,!]$/.test(formattedText)) {
                     formattedText += '।';
                 }
@@ -348,7 +459,7 @@
                 updateStats();
             }
 
-            interimText.textContent = interimTranscript || 'কথা বলুন...';
+            interimText.textContent = interimTranscript || 'কথা বলুন বা অডিও প্লে করুন...';
         };
 
         recognition.onerror = (event) => {
